@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLogin } from '../../api/Login';
+import TextInput from '../../components/InputTypes/TestInput';
+import Button from '../../components/Button';
+import { NotebookIcon, AlertCircleIcon, EyeIcon, EyeOffIcon, ShieldIcon, ZapIcon, LayersIcon } from '../../components/Icons';
 
 export default function SignIn() {
   const navigate = useNavigate();
   const { loginMutation, isLoading, error } = useLogin();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,51 +24,78 @@ export default function SignIn() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-slate-50">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 border border-slate-100">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Welcome back</h1>
-          <p className="text-slate-500 mt-2">Enter your credentials to access your notes.</p>
-        </div>
+    <div className="auth-shell">
+      <div className="auth-hero">
+        <div className="auth-hero-content">
+          <span className="auth-hero-badge"><NotebookIcon width={14} height={14} /> Notes, reimagined</span>
+          <h1>All your thoughts,<br />beautifully organized.</h1>
+          <p>Capture ideas the moment they strike. Pin what matters, tag what's important, find anything in seconds.</p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Note: In step 4, these would be replaced with <TextInput /> from src/components */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-            <input
+          <div style={{ marginTop: 28 }}>
+            <div className="auth-hero-feature"><ShieldIcon /> Secure, private, always yours</div>
+            <div className="auth-hero-feature"><ZapIcon /> Instant search across every note</div>
+            <div className="auth-hero-feature"><LayersIcon /> Organize with categories and pins</div>
+          </div>
+        </div>
+        <p className="auth-hero-quote">&ldquo;The best note is the one you actually write down.&rdquo;</p>
+      </div>
+
+      <div className="auth-panel">
+        <div className="auth-card animate-fade-up">
+          <div className="auth-card-brand">
+            <span className="brand-mark"><NotebookIcon width={18} height={18} /></span>
+            <span className="brand-text" style={{ fontWeight: 800, fontSize: 18 }}>NotesApp</span>
+          </div>
+
+          <h1 className="auth-title">Welcome back</h1>
+          <p className="auth-subtitle">Enter your credentials to access your notes.</p>
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <TextInput
+              id="email"
+              label="Email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="you@example.com"
+              autoComplete="email"
             />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-          </div>
+            <div className="field">
+              <label htmlFor="password" className="field-label">Password</label>
+              <div className="input-affix">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+                <button type="button" className="input-affix-btn" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide characters' : 'Show characters'} title={showPassword ? 'Hide password' : 'Show password'}>
+                  {showPassword ? <EyeOffIcon width={16} height={16} /> : <EyeIcon width={16} height={16} />}
+                </button>
+              </div>
+            </div>
 
-          {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+            {error && (
+              <p className="auth-error">
+                <AlertCircleIcon width={15} height={15} /> {error}
+              </p>
+            )}
 
-          <button 
-            type="submit" 
-            disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-70"
-          >
-            {isLoading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+            <Button type="submit" isLoading={isLoading} fullWidth>
+              {isLoading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </form>
 
-        <p className="mt-6 text-center text-sm text-slate-600">
-          Don't have an account? <Link to="/signup" className="text-blue-600 hover:underline font-semibold">Sign up</Link>
-        </p>
+          <p className="auth-footer">
+            Don't have an account? <Link to="/signup" className="auth-link">Sign up</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ interface NoteFormProps {
   submitLabel?: string;
   onSubmit: (values: NoteInput) => Promise<void>;
   onCancel?: () => void;
+  autoFocus?: boolean;
 }
 
 const defaultValues: NoteInput = {
@@ -20,35 +21,50 @@ const defaultValues: NoteInput = {
   isPinned: false,
 };
 
+const TITLE_MAX = 80;
+const BODY_MAX = 2000;
+
 export default function NoteForm({
   initialValues = defaultValues,
   submitLabel = 'Add note',
   onSubmit,
   onCancel,
+  autoFocus = false,
 }: NoteFormProps) {
   const [values, setValues] = useState<NoteInput>(initialValues);
   const [submitting, setSubmitting] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  const titleError = touched && !values.title.trim() ? 'Title is required' : undefined;
+  const bodyError = touched && !values.body.trim() ? 'Body is required' : undefined;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setTouched(true);
+    if (!values.title.trim() || !values.body.trim()) return;
     setSubmitting(true);
     try {
       await onSubmit(values);
-      if (!onCancel) setValues(defaultValues);
+      if (!onCancel) {
+        setValues(defaultValues);
+        setTouched(false);
+      }
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} data-testid="note-form" className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} data-testid="note-form" className="stack" style={{ gap: 18 }}>
       <TextInput
         id="title"
         label="Title"
         value={values.title}
         onChange={(e) => setValues((v) => ({ ...v, title: e.target.value }))}
-        required
+        maxLength={TITLE_MAX}
+        error={titleError}
         placeholder="E.g., Project Roadmap"
+        autoFocus={autoFocus}
       />
 
       <TextArea
@@ -56,12 +72,13 @@ export default function NoteForm({
         label="Body"
         value={values.body}
         onChange={(e) => setValues((v) => ({ ...v, body: e.target.value }))}
-        required
+        maxLength={BODY_MAX}
+        error={bodyError}
         placeholder="Write your note details here..."
       />
 
-      <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center justify-between pt-2">
-        <div className="flex flex-wrap items-center gap-6">
+      <div className="row" style={{ gap: 20, justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div className="row" style={{ gap: 24, flexWrap: 'wrap' }}>
           <Select
             id="category"
             label="Category"
@@ -82,13 +99,13 @@ export default function NoteForm({
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="row" style={{ gap: 10, marginLeft: 'auto' }}>
           {onCancel && (
-            <Button type="button" variant="ghost" onClick={onCancel} className="flex-1 sm:flex-none">
+            <Button type="button" variant="ghost" onClick={onCancel}>
               Cancel
             </Button>
           )}
-          <Button type="submit" isLoading={submitting} className="flex-1 sm:flex-none">
+          <Button type="submit" isLoading={submitting}>
             {submitLabel}
           </Button>
         </div>

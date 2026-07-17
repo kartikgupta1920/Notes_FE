@@ -1,30 +1,49 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type { Note, NoteInput } from '../../types';
 import NoteForm from '../NoteForm';
-import Button from '../Button';
+import ConfirmDialog from '../ConfirmDialog';
+import { PinIcon, EditIcon, TrashIcon } from '../Icons';
+import { useToast } from '../Toast';
 
 interface NoteCardProps {
   note: Note;
   onUpdate: (id: string, values: NoteInput) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  style?: CSSProperties;
 }
 
-function bodyPreview(body: string, max = 120) {
+function bodyPreview(body: string, max = 140) {
   return body.length > max ? `${body.slice(0, max)}...` : body;
 }
 
-const categoryStyles: Record<string, string> = {
-  personal: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  work: 'bg-blue-100 text-blue-800 border-blue-200',
-  other: 'bg-slate-100 text-slate-800 border-slate-200',
+const categoryLabel: Record<string, string> = {
+  personal: 'badge-personal',
+  work: 'badge-work',
+  other: 'badge-other',
 };
 
-export default function NoteCard({ note, onUpdate, onDelete }: NoteCardProps) {
+export default function NoteCard({ note, onUpdate, onDelete, style }: NoteCardProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { showToast } = useToast();
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(note._id);
+      showToast('Note deleted', 'info');
+    } catch {
+      showToast('Could not delete note', 'error');
+    } finally {
+      setDeleting(false);
+      setConfirmOpen(false);
+    }
+  };
 
   if (isEditing) {
     return (
-      <li className="bg-white p-6 rounded-2xl shadow-lg border border-blue-100 h-full transform transition-all">
+      <li className="note-card animate-scale-in" style={{ ...style, borderColor: 'var(--accent)' }}>
         <NoteForm
           initialValues={{
             title: note.title,
@@ -34,9 +53,15 @@ export default function NoteCard({ note, onUpdate, onDelete }: NoteCardProps) {
           }}
           submitLabel="Save changes"
           onCancel={() => setIsEditing(false)}
+          autoFocus
           onSubmit={async (values) => {
-            await onUpdate(note._id, values);
-            setIsEditing(false);
+            try {
+              await onUpdate(note._id, values);
+              showToast('Note updated', 'success');
+              setIsEditing(false);
+            } catch {
+              showToast('Could not update note', 'error');
+            }
           }}
         />
       </li>
@@ -44,39 +69,51 @@ export default function NoteCard({ note, onUpdate, onDelete }: NoteCardProps) {
   }
 
   return (
-    <li data-testid={`note-${note._id}`} className="flex flex-col bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-slate-300 transition-all group h-full relative">
-      {note.isPinned && (
-        <div className="absolute top-5 right-5 text-amber-400 drop-shadow-sm" title="Pinned Note">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-          </svg>
+    <>
+      <li
+        data-testid={`note-${note._id}`}
+        className={`note-card animate-scale-in ${note.isPinned ? 'is-pinned' : ''}`}
+        style={style}
+      >
+        {note.isPinned && (
+          <span className="note-card-pin" title="Pinned note">
+            <PinIcon width={20} height={20} />
+          </span>
+        )}
+
+        <div style={{ paddingRight: note.isPinned ? 32 : 0, marginBottom: 4 }}>
+          <span className={`badge ${categoryLabel[note.category] || categoryLabel.other}`} style={{ marginBottom: 12, display: 'inline-flex' }}>
+            {note.category}
+          </span>
+          <h3 className="note-card-title">{note.title}</h3>
         </div>
-      )}
-      
-      <div className="mb-4 pr-10">
-        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold border mb-3 uppercase tracking-wider ${categoryStyles[note.category] || categoryStyles.other}`}>
-          {note.category}
-        </span>
-        <h3 className="text-xl font-bold text-slate-900 leading-tight line-clamp-2">{note.title}</h3>
-      </div>
-      
-      <p className="text-slate-600 text-sm whitespace-pre-wrap flex-grow mb-6 leading-relaxed">
-        {bodyPreview(note.body)}
-      </p>
-      
-      <div className="mt-auto border-t border-slate-100 pt-4 flex items-center justify-between">
-        <time dateTime={note.updatedAt} className="text-xs text-slate-400 font-medium">
-          {new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-        </time>
-        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <Button variant="ghost" className="!px-3 !py-1 text-xs" onClick={() => setIsEditing(true)}>
-            Edit
-          </Button>
-          <Button variant="danger" className="!px-3 !py-1 text-xs" onClick={() => onDelete(note._id)}>
-            Delete
-          </Button>
+
+        <p className="note-card-body">{bodyPreview(note.body)}</p>
+
+        <div className="note-card-footer">
+          <time dateTime={note.updatedAt} className="note-card-date">
+            {new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </time>
+          <div className="note-card-actions">
+            <button className="note-card-action" onClick={() => setIsEditing(true)} aria-label="Edit note" title="Edit">
+              <EditIcon width={15} height={15} />
+            </button>
+            <button className="note-card-action is-danger" onClick={() => setConfirmOpen(true)} aria-label="Delete note" title="Delete">
+              <TrashIcon width={15} height={15} />
+            </button>
+          </div>
         </div>
-      </div>
-    </li>
+      </li>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete this note?"
+        description={`"${note.title}" will be permanently removed. This can't be undone.`}
+        confirmLabel="Delete note"
+        isLoading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
+    </>
   );
 }

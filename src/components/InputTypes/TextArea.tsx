@@ -1,27 +1,33 @@
 import React from 'react';
+import { AlertCircleIcon } from '../Icons';
 
 interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
   error?: string;
+  maxLength?: number;
 }
 
-export default function TextArea({ label, error, id, className = '', ...props }: TextAreaProps) {
+export default function TextArea({ label, error, id, className = '', maxLength, value, ...props }: TextAreaProps) {
+  const count = typeof value === 'string' ? value.length : 0;
   return (
-    <div className={`flex flex-col w-full ${className}`}>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1">
-        {label}
+    <div className={`field ${className}`}>
+      <label htmlFor={id} className="field-label">
+        <span>{label}</span>
+        {maxLength && <span className="field-count">{count}/{maxLength}</span>}
       </label>
       <textarea
         id={id}
-        className={`w-full px-4 py-3 border rounded-lg outline-none transition-all duration-200 resize-y min-h-[100px]
-          ${error 
-            ? 'border-red-300 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-red-50/30' 
-            : 'border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white hover:border-slate-400'
-          }
-        `}
+        className={`textarea ${error ? 'input-error' : ''}`}
+        aria-invalid={!!error}
+        maxLength={maxLength}
+        value={value}
         {...props}
       />
-      {error && <span className="text-xs text-red-500 mt-1.5 font-medium">{error}</span>}
+      {error && (
+        <span className="field-error">
+          <AlertCircleIcon width={13} height={13} /> {error}
+        </span>
+      )}
     </div>
   );
 }
